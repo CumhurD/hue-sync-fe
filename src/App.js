@@ -1,31 +1,10 @@
-import React, { useState, useEffect,useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from 'antd';
 import { DesktopOutlined } from '@ant-design/icons';
 import YouTube from 'react-youtube';
-import logo from './logo.svg';
 import './App.css';
+import useInterval from './useInterval';
 const apiUrl = 'http://localhost:3600/';
-
-function useInterval(callback, delay) {
-  const savedCallback = useRef();
-
-  // Remember the latest callback.
-  useEffect(() => {
-    savedCallback.current = callback;
-  }, [callback]);
-
-  // Set up the interval.
-  useEffect(() => {
-    function tick() {
-      savedCallback.current();
-    }
-    if (delay !== null) {
-      let id = setInterval(tick, delay);
-      return () => clearInterval(id);
-    }
-  }, [delay]);
-}
-
 
 function App() {
 
@@ -40,7 +19,17 @@ function App() {
     }
   });
 
+  async function GetDevice() {
+    console.log('getting device info');
+    const deviceStatusResponse = await fetch(apiUrl + 'chromecast/' + selectedDevice.name);
 
+    const pm = await deviceStatusResponse.json();
+
+    const start = Math.ceil(pm.currentTime) + 1;
+    videoPlayerOpts.playerVars.start = start;
+    setVideoPlayerOpts(videoPlayerOpts);
+    setPlayingMedia(pm);
+  }
 
   useEffect(() => {
     async function GetDevices() {
@@ -52,31 +41,13 @@ function App() {
     }
 
     GetDevices();
-
-
-
   }, []);
 
   useEffect(() => {
-    async function GetDevice() {
-      debugger;
-      console.log('getting device info');
-      const deviceStatusResponse = await fetch(apiUrl + 'chromecast/' + selectedDevice.name);
-  
-      const pm = await deviceStatusResponse.json();
-  
-      const start = Math.ceil(pm.currentTime);
-      videoPlayerOpts.playerVars.start = start;
-      setVideoPlayerOpts(videoPlayerOpts);
-      setPlayingMedia(pm);
-    }
-
     GetDevice();
-    var self = this;
-    setInterval(GetDevice.bind(self), 10000);
   }, [selectedDevice]);
 
-
+  useInterval(GetDevice, 2000);
 
   function selectChromeCastDevice(device) {
     setSelectedDevice(device);
