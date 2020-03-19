@@ -10,43 +10,41 @@ const apiUrl = 'http://localhost:3600/';
 function App() {
 
   const [chromecastDevices, setChromecastDevices] = useState([]);
-  const [selectedDevice, setSelectedDevice] = useState({});
-  const [playingMedia, setPlayingMedia] = useState({ media: {} });
-  const [currentSecond, setCurrentSecond] = useState(0);
+  const [selectedDevice, setSelectedDevice] = useState({ name: 'Living Room TV' });
+  const [playingMedia, setPlayingMedia] = useState({ media: {}, filePath: './videos/JB7kxLltNyk.mp4' });
   const [logs, setLogs] = useState([]);
-  const [videoPlayerOpts, setVideoPlayerOpts] = useState({
-    height: '200',
-    width: '400',
-    playerVars: { // https://developers.google.com/youtube/player_parameters
-      autoplay: 1
-    }
-  });
+  const [videoTime, setVideoTime] = useState(0);
+  const [lastUpdate, setLastUpdate] = useState(0);
 
   async function GetDevice() {
     if (!selectedDevice.name)
       return console.warn('No device selected!');
 
-    // setLogs(['getting device info', ...logs]);
+    debugger;
+
     const deviceStatusResponse = await fetch(apiUrl + 'chromecast/' + selectedDevice.name);
 
     const pm = await deviceStatusResponse.json();
+    pm.currentTime = pm.currentTime + 0.5;
 
-    let start = Math.ceil(pm.currentTime);
+    const currentUpdateDate = new Date().getTime()
+    const elapsedTime = (currentUpdateDate - lastUpdate)/1000;
+    const oldTime = videoTime + elapsedTime;
+    const diff = pm.currentTime - oldTime;
 
-    const diff = currentSecond - start;
-    setLogs(['diff ' + diff, ...logs]);
+      // setLogs(['diff ' + diff, ...logs]);
 
-    if (diff > 0.5 || diff < -0.5){
+    if (diff > 0.10 || diff < -0.10) {
       // setLogs(['setCurrentSecond ' + diff, ...logs]);
-
-      let clone = JSON.parse(JSON.stringify(videoPlayerOpts));
-      clone.playerVars.start = start + 1;
-      setVideoPlayerOpts(clone);
-      setCurrentSecond(start + 1);
+      setLogs(['diff ' + diff + ' oldTime:  ' + oldTime + ' lastUpdate' + lastUpdate + ' videoTime' + videoTime, ...logs]);
+      setVideoTime(pm.currentTime);
+      setLastUpdate(currentUpdateDate);
     }
-    
-    if (!playingMedia.media.contentId || pm.media.contentId != playingMedia.media.contentId){
+
+    if (!playingMedia.media.contentId || pm.media.contentId !== playingMedia.media.contentId) {
       setPlayingMedia(pm);
+      setLastUpdate(currentUpdateDate);
+      setVideoTime(pm.currentTime);
     }
   }
 
@@ -55,7 +53,6 @@ function App() {
       const devicesResponse = await fetch(apiUrl + 'chromecast');
 
       let devices = await devicesResponse.json();
-      console.log(devices)
       setChromecastDevices(devices);
     }
 
@@ -66,22 +63,10 @@ function App() {
     GetDevice();
   }, [selectedDevice]);
 
-  useInterval(GetDevice, 2000);
-  useInterval(()=>{
-    setCurrentSecond(currentSecond + 1);
-  }, 1000);
+  useInterval(GetDevice, 1000);
 
   function selectChromeCastDevice(device) {
     setSelectedDevice(device);
-  }
-
-  function onVideoPlayerReady(target) {
-    console.warn('onVideoPlayerReady');
-    setLogs(['onVideoPlayerReady', ...logs]);
-  }
-
-  function goToSecond(){
-
   }
 
   const ChromeCastDevices = () => chromecastDevices.map(function (device, i) {
@@ -98,12 +83,11 @@ function App() {
     );
   });
 
-  const Logs = () => logs.map(function (log, i){
+  const Logs = () => logs.map(function (log, i) {
     return (
-  <div className="logs" key={i}>{log}</div>
+      <div className="logs" key={i}>{log}</div>
     )
   });
-
 
   return (
     <div className="App">
@@ -113,24 +97,33 @@ function App() {
         <Button
         type="primary"
         icon={<DesktopOutlined />}
-        onClick={() => goToSecond()}
+        onClick={GetDevice}
       >
         Rewind
       </Button>
-      <YouTube
+        {/* <YouTube
           videoId={playingMedia.media.contentId}
           opts={videoPlayerOpts}
           onReady={onVideoPlayerReady}
-        />
+        /> */}
 
-      {/* <ReactPlayer
-        url={`https://www.youtube.com/watch?v=${playingMedia.media.contentId}`}
-        youtubeConfig={videoPlayerOpts}
-        playing
+        {/* <Video source={{uri: playingMedia.filePath}}   // Can be a URL or a local file.
+       ref={(ref) => {
+         player = ref
+       }}                                      // Store reference
+       onBuffer={onBuffer}                // Callback when remote video is buffering
+       onError={videoError}               // Callback when video cannot be loaded
+      //  style={styles.backgroundVideo}
+        /> */}
+
+
+        <ReactPlayer
+          url={playingMedia.filePath + `#t=` + (videoTime )}
+          playing
         // width="400"
         // height="200"
-      /> */}
-      <Logs></Logs>
+        />
+        <Logs></Logs>
 
       </header>
     </div>
