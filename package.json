@@ -13,7 +13,7 @@
     "react-dom": "^16.13.0",
     "react-native-video": "^4.4.5",
     "react-player": "^1.15.2",
-    "react-scripts": "3.4.0",
+    "react-scripts": "5.0.1",
     "react-youtube": "^7.9.0",
     "youtube-dl": "^3.0.2",
     "youtube-player": "^5.5.2"
